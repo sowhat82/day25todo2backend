@@ -248,3 +248,4 @@ app.post('/editListName', async (req, resp) => {
 	}
 });
 
+app.use(express.static ( __dirname + '/frontend'))
