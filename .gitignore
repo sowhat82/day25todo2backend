@@ -1,5 +1,3 @@
-node_modules2
+node_modules
 .env
-.enc.env
-.config.json
-test
+.env.enc
