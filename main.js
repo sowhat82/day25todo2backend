@@ -4,14 +4,21 @@ const mysql = require('mysql2/promise')
 const bodyParser = require('body-parser');
 const secureEnv = require('secure-env')
 global.env = secureEnv({secret:'mySecretPassword'})
+const imageType = require('image-type')
+
+var multer = require('multer');
+var multipart = multer({dest: 'uploads/'});
+const fs = require('fs')
 
 // SQL
 const SQL_SELECT_ALL_FROM_LISTS = 'select * from lists;'
 const SQL_SELECT_ALL_FROM_TASKS_WHERE_LISTID = 'select * from tasks where listID = ?;'
 const SQL_SELECT_COUNT_ALL_FROM_TASKS_WHERE_LISTID = 'select count(*) from tasks where listID = ?;'
+const SQL_SELECT_ALL_IMAGES = 'select image from lists;'
 
 const SQL_ADD_NEW_LIST = 'insert into lists (listName, taskCount) values (?,?);'
 const SQL_ADD_NEW_TASK = 'insert into tasks (taskName, listID) values (?,?);'
+const SQL_ADD_NEW_IMAGE = 'update lists set image = ? where listID = last_insert_id()'
 
 const SQL_DELETE_ID_FROM_LISTS = 'delete from lists where listID = ?;'
 const SQL_DELETE_ID_FROM_TASKS = 'delete from tasks where taskID = ?;'
@@ -247,5 +254,67 @@ app.post('/editListName', async (req, resp) => {
 		conn.release()
 	}
 });
+
+app.post('/uploadImage/', multipart.single('image-file'),
+    (req, resp) => {
+
+        fs.readFile(req.file.path, async (err, imgFile) => {
+            
+            // post blob to sql
+            const conn = await pool.getConnection()
+            try {
+        
+                await conn.beginTransaction() // to prevent only one DB from being updated
+        
+				await conn.query(
+                    SQL_ADD_NEW_IMAGE, [imgFile],
+                )
+        
+                await conn.commit()
+        
+                resp.status(200)
+                resp.format({
+                    html: () => { resp.send('Thank you'); },
+                    json: () => { resp.json({status: 'ok'});}
+        
+                })
+                    
+            } catch(e) {
+                conn.rollback()
+                fs.unlink(req.file.path, ()=> { });
+                resp.status(500).send(e)
+                resp.end()
+            } finally {
+                conn.release()
+            }
+        })
+
+    }    
+);
+
+// get all image blobs from SQL
+app.get('/blob/:listID', async (req, resp) => {
+
+	const conn = await pool.getConnection()
+	try {
+		// const [ results, _ ] = await conn.query(SQL_SELECT_ALL_IMAGES)
+		const [ results, _ ] = await conn.query('select image from lists where listID = ?', [req.params.listID])
+		console.info(results)
+		resp.status(200)
+//		resp.type(imageType(results[3].image).mime)
+		resp.send((results[0].image));
+        //     resp.status(200)
+        //     .type('application/json')
+        //     .json(results);   
+        // console.info('try block')
+	} catch(e) {    
+        console.info('catch block')
+		console.error('ERROR: ', e)
+		resp.status(404)
+		resp.end()
+	} finally {
+		conn.release()
+	}
+})
 
 app.use(express.static ( __dirname + '/frontend'))
