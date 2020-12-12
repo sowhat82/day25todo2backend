@@ -43,8 +43,8 @@ const pool = mysql.createPool({
 	host: process.env.DB_HOST || 'localhost',
 	port: parseInt(process.env.DB_PORT) || 3306,
 	database: 'todo',
-	user: global.env.DB_USER || process.env.DB_USER,
-	password: global.env.DB_PASSWORD || process.env.DB_PASSWORD,
+	user: process.env.DB_USER || global.env.DB_USER,
+	password: process.env.DB_PASSWORD || global.env.DB_PASSWORD,
 	connectionLimit: 4
 })
 
