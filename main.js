@@ -265,7 +265,6 @@ app.post('/uploadImage/', multipart.single('image-file'),
             try {
         
                 await conn.beginTransaction() // to prevent only one DB from being updated
-        
 				await conn.query(
                     SQL_ADD_NEW_IMAGE, [imgFile],
                 )
@@ -297,16 +296,11 @@ app.get('/blob/:listID', async (req, resp) => {
 
 	const conn = await pool.getConnection()
 	try {
-		// const [ results, _ ] = await conn.query(SQL_SELECT_ALL_IMAGES)
 		const [ results, _ ] = await conn.query('select image from lists where listID = ?', [req.params.listID])
 		console.info(results)
 		resp.status(200)
-//		resp.type(imageType(results[3].image).mime)
 		resp.send((results[0].image));
-        //     resp.status(200)
-        //     .type('application/json')
-        //     .json(results);   
-        // console.info('try block')
+
 	} catch(e) {    
         console.info('catch block')
 		console.error('ERROR: ', e)
